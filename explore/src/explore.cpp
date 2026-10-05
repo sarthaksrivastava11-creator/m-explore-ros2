@@ -46,7 +46,7 @@ inline static bool same_point(const geometry_msgs::msg::Point& one,
   double dx = one.x - two.x;
   double dy = one.y - two.y;
   double dist = sqrt(dx * dx + dy * dy);
-  return dist < 0.01;
+  return dist < 0.3;
 }
 
 namespace explore
@@ -297,7 +297,8 @@ void Explore::makePlan()
     return;
   }
 
-  RCLCPP_DEBUG(logger_, "Sending goal to move base nav2");
+  RCLCPP_INFO(logger_, "Sending goal (%.2f, %.2f)", target_position.x,
+              target_position.y);
 
   // send goal to move_base if we have something new to pursue
   auto goal = nav2_msgs::action::NavigateToPose::Goal();
@@ -383,7 +384,11 @@ void Explore::reachedGoal(const NavigationGoalHandle::WrappedResult& result,
   goal_active_ = false;
   switch (result.code) {
     case rclcpp_action::ResultCode::SUCCEEDED:
-      RCLCPP_DEBUG(logger_, "Goal was successful");
+      // Robot is at this frontier. If it's still in the map, it can't be
+      // resolved from here, so never send it again.
+      frontier_blacklist_.push_back(frontier_goal);
+      RCLCPP_INFO(logger_, "Reached frontier (%.2f, %.2f), blacklisted",
+                  frontier_goal.x, frontier_goal.y);
       last_progress_ = this->now();
       prev_distance_ = 0;
       break;

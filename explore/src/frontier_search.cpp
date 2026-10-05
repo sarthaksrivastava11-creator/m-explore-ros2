@@ -178,6 +178,14 @@ bool FrontierSearch::isNewFrontierCell(unsigned int idx,
     return false;
   }
 
+  // skip unknown cells touching a wall: these are slivers along wall faces
+  // that the LiDAR can't resolve, and targeting them drives the robot into walls
+  for (unsigned int nbr : nhood8(idx, *costmap_)) {
+    if (map_[nbr] == LETHAL_OBSTACLE) {
+      return false;
+    }
+  }
+
   // frontier cells should have at least one cell in 4-connected neighbourhood
   // that is free
   for (unsigned int nbr : nhood4(idx, *costmap_)) {
